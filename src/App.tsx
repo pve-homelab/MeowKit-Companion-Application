@@ -11,10 +11,15 @@ import FlashView from './views/FlashView';
 import IdeView from './views/IdeView';
 import SerialView from './views/SerialView';
 
-function renderView(view: AppViewId) {
+function renderView(view: AppViewId, setView: (next: AppViewId) => void) {
   switch (view) {
     case 'device':
-      return <DeviceView />;
+      return (
+        <DeviceView
+          onOpenSerial={() => setView('serial')}
+          onOpenFlash={() => setView('flash')}
+        />
+      );
     case 'serial':
       return <SerialView />;
     case 'flash':
@@ -55,7 +60,7 @@ export default function App() {
             </SpaceBetween>
           </Sidebar>
         }
-        content={renderView(view)}
+        content={renderView(view, setView)}
         statusBar={
           <StatusBar left={`Port mode: ${portMode}`}>MeowKit Companion</StatusBar>
         }
