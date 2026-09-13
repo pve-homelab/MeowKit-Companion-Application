@@ -1,0 +1,3 @@
+packages:
+  - '.'
+  - 'vendor/MeowKit-React-Library/packages/*'
