@@ -4,3 +4,5 @@ dist/
 .superpowers/
 *.log
 .DS_Store
+
+vendor/
