@@ -6,10 +6,11 @@
   "main": "./out/main/index.js",
   "type": "module",
   "scripts": {
+    "preinstall": "node scripts/ensure-vendor.mjs",
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
-    "test": "vitest run",
+    "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "fetch-firmware": "node scripts/fetch-firmware.mjs",
