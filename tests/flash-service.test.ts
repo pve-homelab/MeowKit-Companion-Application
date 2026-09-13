@@ -156,4 +156,32 @@ describe('FlashService', () => {
     expect(done).toEqual([expect.objectContaining({ ok: false })]);
     releaseHang?.();
   });
+
+  it('rejects a second concurrent executeFlash while already flashing', async () => {
+    const { root } = await firmwareFixture();
+    let releaseHang: (() => void) | undefined;
+    const flashBinary = vi.fn<FlashBinaryFn>(async () => {
+      await new Promise<void>((resolve) => {
+        releaseHang = resolve;
+      });
+    });
+    const { service, done } = createService({ root, flashBinary });
+
+    const first = service.executeFlash({
+      imageId: 'bundled:v1.0.0',
+      erase: false,
+      portPath: 'COM3',
+    });
+    await vi.waitFor(() => expect(flashBinary).toHaveBeenCalledOnce());
+
+    await expect(
+      service.executeFlash({ imageId: 'bundled:v1.0.0', erase: false, portPath: 'COM3' }),
+    ).rejects.toThrow('Flash already in progress');
+    expect(flashBinary).toHaveBeenCalledOnce();
+    expect(done).toEqual([]);
+
+    releaseHang?.();
+    await first;
+    expect(done).toEqual([{ ok: true }]);
+  });
 });

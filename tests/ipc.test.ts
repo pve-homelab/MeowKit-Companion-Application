@@ -24,6 +24,7 @@ function createHarness() {
       serial.emitStatus = cb;
       return () => undefined;
     }),
+    getStatus: vi.fn(async () => ({ state: 'disconnected' as const })),
     asTransport: vi.fn(() => ({
       isConnected: () => false,
       write: async () => undefined,
@@ -97,6 +98,7 @@ describe('registerIpc', () => {
         IpcChannels.serialConnect,
         IpcChannels.serialDisconnect,
         IpcChannels.serialWrite,
+        IpcChannels.serialGetStatus,
         IpcChannels.flashGetImages,
         IpcChannels.flashPickCustom,
         IpcChannels.flashStart,
@@ -121,6 +123,16 @@ describe('registerIpc', () => {
     expect(serial.connect).toHaveBeenCalledWith({ path: 'COM4', baudRate: 115200 });
     expect(serial.write).toHaveBeenCalledWith('hello');
     expect(serial.disconnect).toHaveBeenCalledOnce();
+  });
+
+  it('returns current serial status from getStatus', async () => {
+    const { invoke, serial } = createHarness();
+    serial.getStatus.mockResolvedValueOnce({ state: 'connected', path: 'COM3', baudRate: 115200 });
+    await expect(invoke(IpcChannels.serialGetStatus)).resolves.toEqual({
+      state: 'connected',
+      path: 'COM3',
+      baudRate: 115200,
+    });
   });
 
   it('returns firmware images and custom pick results', async () => {

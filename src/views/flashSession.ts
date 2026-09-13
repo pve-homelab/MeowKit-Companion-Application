@@ -13,6 +13,9 @@ export const FLASH_SUCCESS_COPY =
 export const NO_JTAG_PORT_COPY =
   'Select the port named USB JTAG/serial debug unit.';
 
+export const CUSTOM_IMAGE_WARNING =
+  'Custom images write at address 0x0. You are responsible for the flash layout.';
+
 export type FlashApi = MeowKitBridge['flash'];
 export type SerialApi = MeowKitBridge['serial'];
 export type DeviceApi = MeowKitBridge['device'];
@@ -36,6 +39,10 @@ export interface FlashSessionState {
   showBootGuide: boolean;
   errorMessage?: string;
   resultMessage?: string;
+}
+
+export function selectedImageIsCustom(state: FlashSessionState): boolean {
+  return state.images.find((image) => image.id === state.selectedImageId)?.source === 'custom';
 }
 
 export const INITIAL_FLASH_SESSION_STATE: FlashSessionState = {
@@ -164,6 +171,14 @@ export function createFlashSessionController(
         images,
         selectedImageId: images[0]?.id ?? state.selectedImageId,
       });
+    },
+    async pickCustomImage() {
+      const image = await flash.pickCustomImage();
+      if (!image) return;
+      const images = state.images.some((existing) => existing.id === image.id)
+        ? state.images.map((existing) => (existing.id === image.id ? image : existing))
+        : [...state.images, image];
+      setState({ images, selectedImageId: image.id });
     },
     async connect() {
       const ports = await refreshPorts();

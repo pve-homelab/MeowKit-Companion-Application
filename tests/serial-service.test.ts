@@ -93,6 +93,16 @@ describe('SerialService', () => {
 
     created[0].emit('data', Buffer.from('pong', 'utf8'));
     expect(data).toEqual(['pong']);
+    expect(service.getStatus()).toEqual({ state: 'connected', path: 'COM3', baudRate: 115200 });
+  });
+
+  it('getStatus hydrates disconnected then connected then disconnected', async () => {
+    const { service } = createHarness();
+    expect(service.getStatus()).toEqual({ state: 'disconnected' });
+    await service.connect({ path: 'COM4', baudRate: 115200 });
+    expect(service.getStatus()).toEqual({ state: 'connected', path: 'COM4', baudRate: 115200 });
+    await service.disconnect();
+    expect(service.getStatus()).toEqual({ state: 'disconnected' });
   });
 
   it('defaults baudRate to 115200 when connect omits baudRate', async () => {

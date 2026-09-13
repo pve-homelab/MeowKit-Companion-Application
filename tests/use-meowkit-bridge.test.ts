@@ -12,6 +12,7 @@ function stubBridge(): MeowKitBridge {
       write: async () => undefined,
       onData: () => () => undefined,
       onStatus: () => () => undefined,
+      getStatus: async () => ({ state: 'disconnected' }),
     },
     flash: {
       getImages: async () => [],

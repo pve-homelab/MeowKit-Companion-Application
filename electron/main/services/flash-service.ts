@@ -58,6 +58,7 @@ type DoneListener = (done: FlashDone) => void;
 export class FlashService {
   #abort: AbortController | null = null;
   #finished = false;
+  #busy = false;
   #progress = new Set<ProgressListener>();
   #logs = new Set<LogListener>();
   #done = new Set<DoneListener>();
@@ -78,6 +79,10 @@ export class FlashService {
   }
 
   async executeFlash(opts: ExecuteFlashOpts): Promise<void> {
+    if (this.#busy || this.coordinator.getMode() === 'flashing') {
+      throw new Error('Flash already in progress');
+    }
+    this.#busy = true;
     this.#abort = new AbortController();
     this.#finished = false;
     try {
@@ -120,6 +125,7 @@ export class FlashService {
       this.#finish({ ok: false, error });
       throw err;
     } finally {
+      this.#busy = false;
       this.coordinator.releaseToIdle();
     }
   }

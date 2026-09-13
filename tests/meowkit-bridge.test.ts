@@ -32,6 +32,7 @@ describe('createMeowKitBridge', () => {
     await meowkit.serial.connect({ path: 'COM1', baudRate: 115200 });
     await meowkit.serial.write('x');
     await meowkit.serial.disconnect();
+    await meowkit.serial.getStatus();
     await meowkit.flash.getImages();
     await meowkit.flash.pickCustomImage();
     await meowkit.flash.start({ imageId: 'bundled:v1.0.0', erase: false, portPath: 'COM3' });
@@ -44,6 +45,7 @@ describe('createMeowKitBridge', () => {
       IpcChannels.serialConnect,
       IpcChannels.serialWrite,
       IpcChannels.serialDisconnect,
+      IpcChannels.serialGetStatus,
       IpcChannels.flashGetImages,
       IpcChannels.flashPickCustom,
       IpcChannels.flashStart,

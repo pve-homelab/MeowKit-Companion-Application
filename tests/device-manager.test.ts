@@ -11,6 +11,7 @@ function stubSerial(overrides: Partial<MeowKitBridge['serial']> = {}): MeowKitBr
     write: async () => undefined,
     onData: () => () => undefined,
     onStatus: () => () => undefined,
+    getStatus: async () => ({ state: 'disconnected' as const }),
     ...overrides,
   };
 }
@@ -83,5 +84,23 @@ describe('createDeviceManagerController', () => {
 
     controller.dispose();
     expect(statusCb).toBeUndefined();
+  });
+
+  it('hydrates the connected device from getStatus on refresh', async () => {
+    const ports: SerialPortInfo[] = [
+      { path: 'COM3', friendlyName: 'MeowKit CDC' },
+      { path: 'COM4', friendlyName: 'Other' },
+    ];
+    const serial = stubSerial({
+      listPorts: async () => ports,
+      getStatus: async () => ({ state: 'connected', path: 'COM3', baudRate: 115200 }),
+    });
+    const controller = createDeviceManagerController(serial, () => undefined);
+    await controller.refresh();
+    expect(controller.getState().connectedPath).toBe('COM3');
+    expect(controller.getState().selectedId).toBe('COM3');
+    expect(controller.getState().status).toBe('success');
+    expect(controller.getState().devices.find((d) => d.id === 'COM3')?.status).toBe('connected');
+    controller.dispose();
   });
 });

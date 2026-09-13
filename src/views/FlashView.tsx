@@ -1,5 +1,6 @@
 import Alert from '@meowkit/components/alert';
 import Box from '@meowkit/components/box';
+import Button from '@meowkit/components/button';
 import Container from '@meowkit/components/container';
 import FirmwareFlashingPanel from '@meowkit/components/firmware-flashing-panel';
 import FormField from '@meowkit/components/form-field';
@@ -11,8 +12,10 @@ import BootModeGuide from '../components/BootModeGuide';
 import { useMeowKitBridge } from '../hooks/useMeowKitBridge';
 import { portsToSelectOptions } from './serialConsole';
 import {
+  CUSTOM_IMAGE_WARNING,
   INITIAL_FLASH_SESSION_STATE,
   createFlashSessionController,
+  selectedImageIsCustom,
   type FlashSessionState,
 } from './flashSession';
 
@@ -36,14 +39,26 @@ export default function FlashView() {
     <Container header={<Header variant="h1">Flash</Header>}>
       <SpaceBetween direction="vertical" size="m">
         <FormField label="Firmware image">
-          <Select
-            options={state.images.map((image) => ({ value: image.id, label: image.label }))}
-            value={state.selectedImageId}
-            onChange={(id) => controllerRef.current?.selectImage(id)}
-            placeholder="Select firmware image"
-            aria-label="Firmware image"
-            disabled={state.status === 'busy'}
-          />
+          <SpaceBetween direction="vertical" size="xs">
+            <Select
+              options={state.images.map((image) => ({ value: image.id, label: image.label }))}
+              value={state.selectedImageId}
+              onChange={(id) => controllerRef.current?.selectImage(id)}
+              placeholder="Select firmware image"
+              aria-label="Firmware image"
+              disabled={state.status === 'busy'}
+            />
+            <Button
+              variant="secondary"
+              onClick={() => {
+                void controllerRef.current?.pickCustomImage();
+              }}
+              disabled={state.status === 'busy'}
+            >
+              Choose custom .bin
+            </Button>
+            {selectedImageIsCustom(state) ? <Alert type="warning">{CUSTOM_IMAGE_WARNING}</Alert> : null}
+          </SpaceBetween>
         </FormField>
         <FormField label="Flash port">
           <Select

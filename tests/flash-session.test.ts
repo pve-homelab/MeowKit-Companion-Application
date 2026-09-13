@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest';
 import type { MeowKitBridge } from '../src/meowkit';
 import type { FirmwareImage, FlashDone, FlashProgress, SerialPortInfo } from '../shared/ipc';
 import {
+  CUSTOM_IMAGE_WARNING,
   FLASH_SUCCESS_COPY,
   SAFE_RETRY_COPY,
   createFlashSessionController,
   pickFlashPortPath,
   preferJtagPort,
+  selectedImageIsCustom,
 } from '../src/views/flashSession';
 
 const bundled: FirmwareImage = {
@@ -39,6 +41,7 @@ function stubBridge(overrides: {
       write: async () => undefined,
       onData: () => () => undefined,
       onStatus: () => () => undefined,
+      getStatus: async () => ({ state: 'disconnected' as const }),
       ...overrides.serial,
     },
     flash: {
@@ -255,6 +258,60 @@ describe('createFlashSessionController', () => {
     const controller = createFlashSessionController(bridge, () => undefined);
     await controller.cancel();
     expect(cancelled).toBe(1);
+    controller.dispose();
+  });
+
+  it('picks a custom image, selects it, and flashes that imageId', async () => {
+    const custom: FirmwareImage = {
+      id: 'custom:C:/fw.bin',
+      label: 'fw.bin',
+      path: 'C:/fw.bin',
+      source: 'custom',
+    };
+    const starts: unknown[] = [];
+    let picked = 0;
+    const bridge = stubBridge({
+      serial: { listPorts: async () => [jtagPort] },
+      flash: {
+        getImages: async () => [bundled],
+        pickCustomImage: async () => {
+          picked += 1;
+          return custom;
+        },
+        start: async (opts) => {
+          starts.push(opts);
+        },
+      },
+    });
+    const controller = createFlashSessionController(bridge, () => undefined);
+    await controller.loadImages();
+    expect(selectedImageIsCustom(controller.getState())).toBe(false);
+
+    await controller.pickCustomImage();
+    expect(picked).toBe(1);
+    expect(controller.getState().selectedImageId).toBe(custom.id);
+    expect(controller.getState().images).toEqual([bundled, custom]);
+    expect(selectedImageIsCustom(controller.getState())).toBe(true);
+    expect(CUSTOM_IMAGE_WARNING).toMatch(/0x0/i);
+    expect(CUSTOM_IMAGE_WARNING).toMatch(/responsible/i);
+
+    await controller.flash();
+    expect(starts).toEqual([{ imageId: custom.id, erase: false, portPath: 'COM3' }]);
+    controller.dispose();
+  });
+
+  it('keeps the current image when custom pick is cancelled', async () => {
+    const bridge = stubBridge({
+      flash: {
+        getImages: async () => [bundled],
+        pickCustomImage: async () => null,
+      },
+    });
+    const controller = createFlashSessionController(bridge, () => undefined);
+    await controller.loadImages();
+    await controller.pickCustomImage();
+    expect(controller.getState().selectedImageId).toBe('bundled:v1.0.0');
+    expect(controller.getState().images).toEqual([bundled]);
     controller.dispose();
   });
 

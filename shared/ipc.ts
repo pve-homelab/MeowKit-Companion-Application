@@ -41,6 +41,7 @@ export const IpcChannels = {
   serialConnect: 'serial:connect',
   serialDisconnect: 'serial:disconnect',
   serialWrite: 'serial:write',
+  serialGetStatus: 'serial:getStatus',
   serialData: 'serial:data',
   serialStatus: 'serial:status',
   flashGetImages: 'flash:getImages',

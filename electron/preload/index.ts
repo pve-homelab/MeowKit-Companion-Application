@@ -21,6 +21,7 @@ export function createMeowKitBridge(ipc: IpcRendererLike): MeowKitBridge {
       connect: (opts) => ipc.invoke(IpcChannels.serialConnect, opts) as Promise<void>,
       disconnect: () => ipc.invoke(IpcChannels.serialDisconnect) as Promise<void>,
       write: (data) => ipc.invoke(IpcChannels.serialWrite, data) as Promise<void>,
+      getStatus: () => ipc.invoke(IpcChannels.serialGetStatus) as ReturnType<MeowKitBridge['serial']['getStatus']>,
       onData: (cb) => subscribe(ipc, IpcChannels.serialData, cb),
       onStatus: (cb) => subscribe(ipc, IpcChannels.serialStatus, cb),
     },

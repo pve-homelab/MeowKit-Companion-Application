@@ -22,6 +22,7 @@ export interface IpcSerial {
   connect(opts: { path: string; baudRate: number }): Promise<void>;
   disconnect(): Promise<void>;
   write(data: string): Promise<void>;
+  getStatus(): Promise<SerialStatus> | SerialStatus;
   onData(cb: (chunk: string) => void): () => void;
   onStatus(cb: (status: SerialStatus) => void): () => void;
   asTransport(): SerialTransport;
@@ -73,6 +74,7 @@ export function registerIpc(deps: RegisterIpcDeps): void {
   );
   ipc.handle(IpcChannels.serialDisconnect, () => serial.disconnect());
   ipc.handle(IpcChannels.serialWrite, (_event, data) => serial.write(String(data)));
+  ipc.handle(IpcChannels.serialGetStatus, () => serial.getStatus());
   ipc.handle(IpcChannels.flashGetImages, () => store.list());
   ipc.handle(IpcChannels.flashPickCustom, async () => {
     const path = await pickFirmwareFile();

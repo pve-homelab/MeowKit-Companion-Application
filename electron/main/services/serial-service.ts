@@ -45,6 +45,7 @@ export class SerialService {
   #lineWaiters: LineWaiter[] = [];
   #dataListeners = new Set<DataListener>();
   #statusListeners = new Set<StatusListener>();
+  #status: SerialStatus = { state: 'disconnected' };
 
   constructor(
     private readonly coordinator: PortCoordinator,
@@ -103,6 +104,10 @@ export class SerialService {
         else resolve();
       });
     });
+  }
+
+  getStatus(): SerialStatus {
+    return this.#status;
   }
 
   onData(cb: DataListener): () => void {
@@ -273,6 +278,7 @@ export class SerialService {
   }
 
   #emitStatus(status: SerialStatus): void {
+    this.#status = status;
     for (const cb of [...this.#statusListeners]) cb(status);
   }
 }

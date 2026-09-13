@@ -83,28 +83,30 @@ export function createSerialConsoleController(
     pushLine(lineFromData(nextLineId(), chunk));
   });
 
-  const offStatus = serial.onStatus((status) => {
+  function applyStatus(status: SerialStatus, extra?: Partial<SerialConsoleState>): void {
     switch (status.state) {
       case 'connected':
-        setState({ connected: true, selectedPath: status.path });
+        setState({ ...extra, connected: true, selectedPath: status.path });
         return;
       case 'disconnected':
-        setState({ connected: false });
+        setState({ ...extra, connected: false });
         return;
       case 'reconnecting': {
         const line = lineFromStatus(nextLineId(), status);
         setState({
+          ...extra,
           connected: false,
           selectedPath: status.path,
-          lines: line ? [...state.lines, line] : state.lines,
+          lines: extra?.lines ?? (line ? [...state.lines, line] : state.lines),
         });
         return;
       }
       case 'error': {
         const line = lineFromStatus(nextLineId(), status);
         setState({
+          ...extra,
           connected: false,
-          lines: line ? [...state.lines, line] : state.lines,
+          lines: extra?.lines ?? (line ? [...state.lines, line] : state.lines),
         });
         return;
       }
@@ -113,13 +115,17 @@ export function createSerialConsoleController(
         return _exhaustive;
       }
     }
+  }
+
+  const offStatus = serial.onStatus((status) => {
+    applyStatus(status);
   });
 
   return {
     getState: () => state,
     async refresh() {
-      const ports = await serial.listPorts();
-      setState({ ports });
+      const [ports, status] = await Promise.all([serial.listPorts(), serial.getStatus()]);
+      applyStatus(status, { ports });
     },
     async connect(path: string) {
       setState({ selectedPath: path });

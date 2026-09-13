@@ -52,10 +52,14 @@ export function createDeviceManagerController(
     emit(state);
   }
 
-  const offStatus = serial.onStatus((status: SerialStatus) => {
+  function applySerialStatus(
+    status: SerialStatus,
+    extra?: Partial<Omit<DeviceManagerState, 'devices'>>,
+  ): void {
     switch (status.state) {
       case 'connected':
         setState({
+          ...extra,
           connectedPath: status.path,
           selectedId: status.path,
           status: 'success',
@@ -63,19 +67,37 @@ export function createDeviceManagerController(
         });
         return;
       case 'disconnected':
-        setState({ connectedPath: undefined, status: 'idle', errorMessage: undefined });
+        setState({
+          ...extra,
+          connectedPath: undefined,
+          status: extra?.status ?? 'idle',
+          errorMessage: undefined,
+        });
         return;
       case 'reconnecting':
-        setState({ connectedPath: undefined, selectedId: status.path, status: 'busy' });
+        setState({
+          ...extra,
+          connectedPath: undefined,
+          selectedId: status.path,
+          status: 'busy',
+        });
         return;
       case 'error':
-        setState({ status: 'error', errorMessage: status.message });
+        setState({
+          ...extra,
+          status: 'error',
+          errorMessage: status.message,
+        });
         return;
       default: {
         const _exhaustive: never = status;
         return _exhaustive;
       }
     }
+  }
+
+  const offStatus = serial.onStatus((status: SerialStatus) => {
+    applySerialStatus(status);
   });
 
   return {
@@ -86,8 +108,8 @@ export function createDeviceManagerController(
     async refresh() {
       setState({ status: 'busy', errorMessage: undefined });
       try {
-        const ports = await serial.listPorts();
-        setState({ ports, status: 'idle' });
+        const [ports, serialStatus] = await Promise.all([serial.listPorts(), serial.getStatus()]);
+        applySerialStatus(serialStatus, { ports, status: 'idle' });
       } catch (err) {
         setState({
           status: 'error',

@@ -15,6 +15,7 @@ export interface MeowKitBridge {
     connect(opts: { path: string; baudRate: number }): Promise<void>;
     disconnect(): Promise<void>;
     write(data: string): Promise<void>;
+    getStatus(): Promise<SerialStatus>;
     onData(cb: (chunk: string) => void): () => void;
     onStatus(cb: (status: SerialStatus) => void): () => void;
   };
