@@ -26,6 +26,22 @@ npx pnpm@9.15.0 --filter @meowkit/components... build
 | `pnpm build` | Production build |
 | `pnpm test` | Run Vitest |
 | `pnpm typecheck` | TypeScript check (`src`, `electron`, `shared`) |
+| `pnpm fetch-firmware` | Download bundled factory firmware into `resources/firmware` |
+
+## Bundled firmware extras
+
+`firmwareRoot()` in `electron/main/path.ts` resolves to `resources/firmware` in development (`app.getAppPath()/resources/firmware`) and `process.resourcesPath/firmware` when packaged.
+
+electron-builder copies that tree via `package.json` `build.extraResources`:
+
+```json
+{
+  "from": "resources/firmware",
+  "to": "firmware"
+}
+```
+
+Run `pnpm fetch-firmware` before packaging so `resources/firmware/v1.0.0/` contains the factory `.bin` and `SHA256SUMS.txt`. Dev (`pnpm dev`) reads the same folder from the repo; no extra electron-vite copy step is required.
 
 ## Development
 

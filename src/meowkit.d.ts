@@ -2,6 +2,7 @@ import type {
   FirmwareImage,
   FlashDone,
   FlashProgress,
+  FlashStartOpts,
   PortMode,
   RebootDownloadResult,
   SerialPortInfo,
@@ -20,7 +21,7 @@ export interface MeowKitBridge {
   flash: {
     getImages(): Promise<FirmwareImage[]>;
     pickCustomImage(): Promise<FirmwareImage | null>;
-    start(opts: { imageId?: string; path?: string; erase: boolean }): Promise<void>;
+    start(opts: FlashStartOpts): Promise<void>;
     cancel(): Promise<void>;
     onProgress(cb: (p: FlashProgress) => void): () => void;
     onLog(cb: (line: string) => void): () => void;

@@ -29,6 +29,13 @@ export type RebootDownloadResult =
 export type FlashProgress = { percent: number; bytesWritten?: number };
 export type FlashDone = { ok: boolean; error?: string };
 
+export interface FlashStartOpts {
+  imageId?: string;
+  path?: string;
+  erase: boolean;
+  portPath?: string;
+}
+
 export const IpcChannels = {
   serialListPorts: 'serial:listPorts',
   serialConnect: 'serial:connect',
