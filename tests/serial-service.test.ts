@@ -30,6 +30,10 @@ class MockPort implements SerialPortLike {
     (this.handlers[ev] ??= []).push(cb);
   }
 
+  removeAllListeners(): void {
+    this.handlers = {};
+  }
+
   emit(ev: string, ...args: unknown[]): void {
     for (const cb of this.handlers[ev] ?? []) cb(...args);
   }
@@ -89,6 +93,14 @@ describe('SerialService', () => {
 
     created[0].emit('data', Buffer.from('pong', 'utf8'));
     expect(data).toEqual(['pong']);
+  });
+
+  it('defaults baudRate to 115200 when connect omits baudRate', async () => {
+    const { createOpts, service } = createHarness();
+
+    await service.connect({ path: 'COM3' });
+
+    expect(createOpts).toEqual([{ path: 'COM3', baudRate: 115200 }]);
   });
 
   it('rejects connect when coordinator is flashing', async () => {
@@ -173,6 +185,21 @@ describe('SerialService', () => {
 
       await vi.advanceTimersByTimeAsync(5000);
       expect(createOpts).toHaveLength(1);
+    });
+
+    it('does not prefix readLine with a partial line after reconnect', async () => {
+      const { created, service } = createHarness();
+      await service.connect({ path: 'COM3', baudRate: 115200 });
+      const transport = service.asTransport();
+
+      created[0].emit('data', Buffer.from('partial'));
+      created[0].isOpen = false;
+      created[0].emit('close');
+
+      await vi.advanceTimersByTimeAsync(500);
+
+      created[1].emit('data', Buffer.from('complete\n'));
+      await expect(transport.readLine(50)).resolves.toBe('complete');
     });
   });
 });

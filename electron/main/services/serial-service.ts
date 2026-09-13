@@ -128,6 +128,11 @@ export class SerialService {
   }
 
   async #openPort(): Promise<void> {
+    this.#rejectLineWaiters();
+    const previous = this.#port;
+    this.#port = null;
+    if (previous) await this.#disposePort(previous);
+
     const port = this.#factory.create({ path: this.#path, baudRate: this.#baudRate });
     this.#port = port;
     port.on('data', (chunk) => this.#onBytes(this.#toUtf8(chunk)));
@@ -141,9 +146,16 @@ export class SerialService {
     const port = this.#port;
     this.#port = null;
     if (!port) return;
+    await this.#disposePort(port);
+  }
+
+  async #disposePort(port: SerialPortLike): Promise<void> {
     this.#closing = true;
     try {
       if (port.isOpen) await port.close();
+      if ('removeAllListeners' in port && typeof port.removeAllListeners === 'function') {
+        port.removeAllListeners();
+      }
     } finally {
       this.#closing = false;
     }
