@@ -8,6 +8,7 @@
   "scripts": {
     "preinstall": "node scripts/ensure-vendor.mjs",
     "dev": "electron-vite dev",
+    "dev:web": "vite --config vite.config.web.ts",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "dist": "pnpm build && electron-builder --win",
@@ -49,6 +50,10 @@
       {
         "from": "resources/firmware",
         "to": "firmware"
+      },
+      {
+        "from": "resources/apps",
+        "to": "apps"
       }
     ],
     "win": {

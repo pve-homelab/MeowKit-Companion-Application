@@ -2,8 +2,14 @@ node_modules/
 out/
 dist/
 release/
+.release*/
+release-hw/
 .superpowers/
 *.log
+*.pid
 .DS_Store
+Thumbs.db
 
 vendor/
+
+electron-builder.hw.json

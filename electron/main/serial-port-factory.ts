@@ -41,6 +41,10 @@ export function createSerialPortFactory(): SerialPortFactory {
         removeAllListeners: () => {
           port.removeAllListeners();
         },
+        set: (opts) =>
+          new Promise<void>((resolve, reject) => {
+            port.set(opts, (err) => (err ? reject(err) : resolve()));
+          }),
       } as SerialPortLike;
     },
     list: listPorts,

@@ -4,6 +4,10 @@ import type { MeowKitBridge } from '../meowkit';
 
 export const SERIAL_BAUD = 115200;
 
+export const SERIAL_BAUD_RATES = [115200, 921600, 9600] as const;
+
+export type SerialBaudRate = (typeof SERIAL_BAUD_RATES)[number];
+
 export type SerialApi = MeowKitBridge['serial'];
 
 export interface PortSelectOption {
@@ -14,15 +18,25 @@ export interface PortSelectOption {
 export interface SerialConsoleState {
   ports: SerialPortInfo[];
   selectedPath?: string;
+  baudRate: SerialBaudRate;
   connected: boolean;
   lines: SerialConsoleLine[];
 }
 
 export const INITIAL_SERIAL_CONSOLE_STATE: SerialConsoleState = {
   ports: [],
+  baudRate: SERIAL_BAUD,
   connected: false,
   lines: [],
 };
+
+export function baudRatesToSelectOptions(rates: readonly SerialBaudRate[] = SERIAL_BAUD_RATES): PortSelectOption[] {
+  return rates.map((rate) => ({ value: String(rate), label: String(rate) }));
+}
+
+export function formatSerialLog(lines: SerialConsoleLine[]): string {
+  return lines.map((line) => line.text).join('');
+}
 
 export function portsToSelectOptions(ports: SerialPortInfo[]): PortSelectOption[] {
   return ports.map((port) => ({
@@ -127,10 +141,10 @@ export function createSerialConsoleController(
       const [ports, status] = await Promise.all([serial.listPorts(), serial.getStatus()]);
       applyStatus(status, { ports });
     },
-    async connect(path: string) {
-      setState({ selectedPath: path });
+    async connect(path: string, baudRate: SerialBaudRate = state.baudRate) {
+      setState({ selectedPath: path, baudRate });
       try {
-        await serial.connect({ path, baudRate: SERIAL_BAUD });
+        await serial.connect({ path, baudRate });
       } catch (err) {
         pushLine({
           id: nextLineId(),
@@ -140,8 +154,32 @@ export function createSerialConsoleController(
         throw err;
       }
     },
+    async setBaudRate(baudRate: SerialBaudRate) {
+      setState({ baudRate });
+      if (state.connected && state.selectedPath) {
+        await this.connect(state.selectedPath, baudRate);
+      }
+    },
+    async disconnect() {
+      await serial.disconnect();
+    },
     async send(line: string) {
       await serial.write(encodeSerialWrite(line));
+    },
+    async saveLog() {
+      return serial.saveLog(formatSerialLog(state.lines));
+    },
+    async reset() {
+      try {
+        await serial.reset();
+      } catch (err) {
+        pushLine({
+          id: nextLineId(),
+          text: err instanceof Error ? err.message : String(err),
+          stream: 'system',
+        });
+        throw err;
+      }
     },
     clear() {
       setState({ lines: [] });

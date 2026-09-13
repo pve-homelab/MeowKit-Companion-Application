@@ -8,6 +8,7 @@ export interface SerialPortLike {
   close(): Promise<void>;
   write(data: Buffer | Uint8Array | string, cb: (err?: Error | null) => void): void;
   on(event: string, listener: (...args: unknown[]) => void): void;
+  set?(opts: { dtr?: boolean; rts?: boolean }): Promise<void>;
 }
 
 export interface ListedSerialPort {
@@ -104,6 +105,15 @@ export class SerialService {
         else resolve();
       });
     });
+  }
+
+  async reset(): Promise<void> {
+    const port = this.#port;
+    if (!port?.isOpen) throw new Error('Not connected');
+    if (!port.set) throw new Error('Port does not support DTR control');
+    await port.set({ dtr: false });
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    await port.set({ dtr: true });
   }
 
   getStatus(): SerialStatus {

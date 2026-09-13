@@ -39,6 +39,8 @@ function stubBridge(overrides: {
       connect: async () => undefined,
       disconnect: async () => undefined,
       write: async () => undefined,
+      reset: async () => undefined,
+      saveLog: async () => true,
       onData: () => () => undefined,
       onStatus: () => () => undefined,
       getStatus: async () => ({ state: 'disconnected' as const }),

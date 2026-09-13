@@ -11,6 +11,7 @@ class MockPort implements SerialPortLike {
   handlers: Record<string, Array<(...args: unknown[]) => void>> = {};
   isOpen = false;
   writes: Array<Buffer | string> = [];
+  dtrStates: boolean[] = [];
 
   async open(): Promise<void> {
     this.isOpen = true;
@@ -32,6 +33,10 @@ class MockPort implements SerialPortLike {
 
   removeAllListeners(): void {
     this.handlers = {};
+  }
+
+  async set(opts: { dtr?: boolean; rts?: boolean }): Promise<void> {
+    if (opts.dtr !== undefined) this.dtrStates.push(opts.dtr);
   }
 
   emit(ev: string, ...args: unknown[]): void {
@@ -103,6 +108,19 @@ describe('SerialService', () => {
     expect(service.getStatus()).toEqual({ state: 'connected', path: 'COM4', baudRate: 115200 });
     await service.disconnect();
     expect(service.getStatus()).toEqual({ state: 'disconnected' });
+  });
+
+  it('pulses DTR low then high on reset()', async () => {
+    vi.useFakeTimers();
+    const { created, service } = createHarness();
+    await service.connect({ path: 'COM3', baudRate: 115200 });
+
+    const resetPromise = service.reset();
+    await vi.advanceTimersByTimeAsync(100);
+    await resetPromise;
+
+    expect(created[0].dtrStates).toEqual([false, true]);
+    vi.useRealTimers();
   });
 
   it('defaults baudRate to 115200 when connect omits baudRate', async () => {

@@ -3,8 +3,11 @@ import type { MeowKitBridge } from '../src/meowkit';
 import type { SerialPortInfo, SerialStatus } from '../shared/ipc';
 import {
   SERIAL_BAUD,
+  SERIAL_BAUD_RATES,
+  baudRatesToSelectOptions,
   createSerialConsoleController,
   encodeSerialWrite,
+  formatSerialLog,
   lineFromData,
   lineFromStatus,
   portsToSelectOptions,
@@ -16,6 +19,8 @@ function stubSerial(overrides: Partial<MeowKitBridge['serial']> = {}): MeowKitBr
     connect: async () => undefined,
     disconnect: async () => undefined,
     write: async () => undefined,
+    reset: async () => undefined,
+    saveLog: async () => true,
     onData: () => () => undefined,
     onStatus: () => () => undefined,
     getStatus: async () => ({ state: 'disconnected' as const }),
@@ -24,8 +29,18 @@ function stubSerial(overrides: Partial<MeowKitBridge['serial']> = {}): MeowKitBr
 }
 
 describe('serial console mapping', () => {
-  it('uses 115200 as the connect baud rate', () => {
+  it('uses 115200 as the default baud rate', () => {
     expect(SERIAL_BAUD).toBe(115200);
+    expect(SERIAL_BAUD_RATES).toEqual([115200, 921600, 9600]);
+    expect(baudRatesToSelectOptions()).toEqual([
+      { value: '115200', label: '115200' },
+      { value: '921600', label: '921600' },
+      { value: '9600', label: '9600' },
+    ]);
+  });
+
+  it('formats console lines into a log payload', () => {
+    expect(formatSerialLog([{ id: '1', text: 'boot\n', stream: 'stdout' }])).toBe('boot\n');
   });
 
   it('maps ports to Select options by path and friendlyName', () => {
@@ -127,6 +142,88 @@ describe('createSerialConsoleController', () => {
     expect(controller.getState().ports).toEqual(ports);
     expect(controller.getState().connected).toBe(true);
     expect(controller.getState().selectedPath).toBe('COM3');
+    controller.dispose();
+  });
+
+  it('reconnects when baud rate changes while connected', async () => {
+    const connects: Array<{ path: string; baudRate: number }> = [];
+    let statusCb: ((status: SerialStatus) => void) | undefined;
+    const serial = stubSerial({
+      connect: async (opts) => {
+        connects.push(opts);
+        statusCb?.({ state: 'connected', path: opts.path, baudRate: opts.baudRate });
+      },
+      onStatus: (cb) => {
+        statusCb = cb;
+        return () => {
+          statusCb = undefined;
+        };
+      },
+      getStatus: async () => ({ state: 'connected', path: 'COM3', baudRate: 115200 }),
+      listPorts: async () => [{ path: 'COM3', friendlyName: 'MeowKit CDC' }],
+    });
+    const controller = createSerialConsoleController(serial, () => undefined);
+    await controller.refresh();
+    await controller.setBaudRate(921600);
+    expect(connects).toEqual([{ path: 'COM3', baudRate: 921600 }]);
+    controller.dispose();
+  });
+
+  it('saveLog forwards formatted lines to serial.saveLog', async () => {
+    const saved: string[] = [];
+    const serial = stubSerial({
+      saveLog: async (content) => {
+        saved.push(content);
+        return true;
+      },
+    });
+    const controller = createSerialConsoleController(serial, () => undefined);
+    controller.getState().lines.push({ id: '1', text: 'hello\n', stream: 'stdout' });
+    await controller.saveLog();
+    expect(saved).toEqual(['hello\n']);
+    controller.dispose();
+  });
+
+  it('reset calls serial.reset and surfaces errors as system lines', async () => {
+    let resets = 0;
+    const serial = stubSerial({
+      reset: async () => {
+        resets += 1;
+        throw new Error('DTR failed');
+      },
+    });
+    const lines: unknown[] = [];
+    const controller = createSerialConsoleController(serial, (state) => {
+      lines.push(state.lines.at(-1));
+    });
+    await expect(controller.reset()).rejects.toThrow('DTR failed');
+    expect(resets).toBe(1);
+    expect(lines.at(-1)).toEqual({ id: '1', text: 'DTR failed', stream: 'system' });
+    controller.dispose();
+  });
+
+  it('disconnect calls serial.disconnect', async () => {
+    let disconnects = 0;
+    let statusCb: ((status: SerialStatus) => void) | undefined;
+    const serial = stubSerial({
+      disconnect: async () => {
+        disconnects += 1;
+        statusCb?.({ state: 'disconnected' });
+      },
+      onStatus: (cb) => {
+        statusCb = cb;
+        return () => {
+          statusCb = undefined;
+        };
+      },
+      getStatus: async () => ({ state: 'connected', path: 'COM3', baudRate: 115200 }),
+      listPorts: async () => [{ path: 'COM3', friendlyName: 'MeowKit CDC' }],
+    });
+    const controller = createSerialConsoleController(serial, () => undefined);
+    await controller.refresh();
+    await controller.disconnect();
+    expect(disconnects).toBe(1);
+    expect(controller.getState().connected).toBe(false);
     controller.dispose();
   });
 });

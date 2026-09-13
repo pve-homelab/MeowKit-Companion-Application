@@ -36,7 +36,13 @@ export default function FlashView() {
   }, [serial, flash, device]);
 
   return (
-    <Container header={<Header variant="h1">Flash</Header>}>
+    <Container
+      header={
+        <Header variant="h1">
+          Flash <Box as="span" color="muted">— will be tested with next firmware update</Box>
+        </Header>
+      }
+    >
       <SpaceBetween direction="vertical" size="m">
         <FormField label="Firmware image">
           <SpaceBetween direction="vertical" size="xs">
@@ -61,14 +67,24 @@ export default function FlashView() {
           </SpaceBetween>
         </FormField>
         <FormField label="Flash port">
-          <Select
-            options={portsToSelectOptions(state.ports)}
-            value={state.selectedPortPath}
-            onChange={(path) => controllerRef.current?.selectPort(path)}
-            placeholder="Select USB JTAG/serial debug unit"
-            aria-label="Flash port"
-            disabled={state.status === 'busy'}
-          />
+          <SpaceBetween direction="horizontal" size="xs">
+            <Select
+              options={portsToSelectOptions(state.ports)}
+              value={state.selectedPortPath}
+              onChange={(path) => controllerRef.current?.selectPort(path)}
+              placeholder="Select USB JTAG/serial debug unit"
+              aria-label="Flash port"
+              disabled={state.status === 'busy'}
+            />
+            <Button
+              variant="secondary"
+              onClick={() => {
+                void controllerRef.current?.disconnect();
+              }}
+            >
+              Disconnect flash
+            </Button>
+          </SpaceBetween>
         </FormField>
         {state.showBootGuide ? (
           <BootModeGuide

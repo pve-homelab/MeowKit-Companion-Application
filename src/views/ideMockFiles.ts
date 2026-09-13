@@ -13,20 +13,33 @@ export const fileTree: FileExplorerNode[] = [
     name: 'src',
     type: 'folder',
     children: [
-      { id: 'main-ino', name: 'main.ino', type: 'file' },
-      { id: 'main-py', name: 'main.py', type: 'file' },
+      { id: 'src/main.ino', name: 'main.ino', type: 'file' },
+      { id: 'src/main.py', name: 'main.py', type: 'file' },
     ],
   },
   {
-    id: 'lib',
-    name: 'lib',
+    id: 'apps',
+    name: 'apps',
     type: 'folder',
-    children: [{ id: 'utils', name: 'utils.py', type: 'file' }],
+    children: [{ id: 'apps/manifest.json', name: 'manifest.json', type: 'file' }],
   },
-  { id: 'readme', name: 'README.md', type: 'file' },
+  {
+    id: 'firmware',
+    name: 'firmware',
+    type: 'folder',
+    children: [{ id: 'firmware/partitions.csv', name: 'partitions.csv', type: 'file' }],
+  },
+  {
+    id: 'assets',
+    name: 'assets',
+    type: 'folder',
+    children: [{ id: 'assets/README.md', name: 'README.md', type: 'file' }],
+  },
+  { id: 'config.json', name: 'config.json', type: 'file' },
+  { id: 'README.md', name: 'README.md', type: 'file' },
 ];
 
-export const defaultExpandedIds = ['src', 'lib'];
+export const defaultExpandedIds = ['src', 'apps', 'firmware', 'assets'];
 export const defaultSelectedId = 'main-py';
 
 export const mockFiles: Record<string, MockFile> = {
@@ -56,12 +69,41 @@ def blink():
     return True
 `,
   },
-  utils: {
-    label: 'utils.py',
-    path: 'lib/utils.py',
-    language: 'python',
-    content: `def format_port(name: str) -> str:
-    return name.upper()
+  'app-manifest': {
+    label: 'manifest.json',
+    path: 'apps/manifest.json',
+    language: 'json',
+    content: `{
+  "apps": ["retrotv", "audio-pad"]
+}
+`,
+  },
+  partition: {
+    label: 'partitions.csv',
+    path: 'firmware/partitions.csv',
+    language: 'plaintext',
+    content: `# Name, Type, SubType, Offset, Size
+nvs, data, nvs, 0x9000, 0x5000
+app0, app, ota_0, 0x10000, 0xC80000
+`,
+  },
+  'asset-readme': {
+    label: 'README.md',
+    path: 'assets/README.md',
+    language: 'markdown',
+    content: `# Assets
+
+Drop IR codes, audio, and images here for packaging onto the device SD card.
+`,
+  },
+  config: {
+    label: 'config.json',
+    path: 'config.json',
+    language: 'json',
+    content: `{
+  "board": "meowkit-s3",
+  "baud": 115200
+}
 `,
   },
   readme: {
@@ -70,7 +112,7 @@ def blink():
     language: 'markdown',
     content: `# Companion workspace
 
-Edit sketches here, then use Build or Flash from the toolbar.
+Folders mirror the planned MeowKit project layout: src, apps, firmware, assets.
 `,
   },
 };

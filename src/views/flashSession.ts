@@ -232,6 +232,21 @@ export function createFlashSessionController(
     async cancel() {
       await flash.cancel();
     },
+    async disconnect() {
+      if (state.status === 'busy') {
+        await flash.cancel();
+      }
+      await serial.disconnect();
+      setState({
+        status: 'idle',
+        progress: 0,
+        showBootGuide: false,
+        errorMessage: undefined,
+        resultMessage: undefined,
+        deviceName: 'No device',
+        selectedPortPath: undefined,
+      });
+    },
     dispose() {
       offProgress();
       offLog();
