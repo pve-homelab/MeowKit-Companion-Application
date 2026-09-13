@@ -10,6 +10,8 @@
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
+    "dist": "pnpm build && electron-builder --win",
+    "dist:dir": "pnpm build && electron-builder --win --dir",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -18,8 +20,8 @@
   },
   "dependencies": {
     "@meowkit/components": "workspace:*",
-    "@meowkit/global-styles": "workspace:*",
     "@meowkit/design-tokens": "workspace:*",
+    "@meowkit/global-styles": "workspace:*",
     "@monaco-editor/react": "^4.7.0",
     "electron-updater": "^6.3.9",
     "esptool-js": "^0.5.7",
@@ -29,18 +31,55 @@
     "serialport": "^13.0.0"
   },
   "build": {
+    "appId": "cc.meowkit.companion",
+    "productName": "MeowKit Companion",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "out/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "**/node_modules/serialport/**/*",
+      "**/node_modules/@serialport/**/*"
+    ],
     "extraResources": [
       {
         "from": "resources/firmware",
         "to": "firmware"
       }
-    ]
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    }
   },
   "devDependencies": {
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.4",
     "electron": "^35.0.0",
+    "electron-builder": "^26.15.3",
     "electron-vite": "^3.0.0",
     "typescript": "^5.8.2",
     "vite": "^6.2.2",
